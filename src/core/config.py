@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_type: Literal["dynamodb", "mongodb"] = Field(
-        description="The backend database to use (dynamodb or mongodb)"
+    database_type: Literal["dynamodb", "mongodb", "mock"] = Field(
+        description="The backend database to use (dynamodb, mongodb, or mock)"
     )
 
     # DynamoDB Settings

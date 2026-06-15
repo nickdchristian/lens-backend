@@ -29,6 +29,8 @@ async def lifespan(app: FastAPI):
         import aioboto3
 
         app.state.dynamo_session = aioboto3.Session(region_name=settings.aws_region)
+    elif settings.database_type == "mock":
+        pass  # Skip database initialization for tests
     else:
         raise ValueError(f"Unsupported database type: {settings.database_type}")
 
