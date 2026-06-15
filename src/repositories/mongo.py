@@ -13,7 +13,7 @@ class MongoRepository(EventRepositoryProtocol):
     @override
     async def setup(self) -> None:
         # Create a compound index to ensure get_events_by_repository is performant
-        from pymongo import DESCENDING, ASCENDING
+        from pymongo import ASCENDING, DESCENDING
 
         await self.collection.create_index(
             [("repository", ASCENDING), ("timestamp", DESCENDING)]
