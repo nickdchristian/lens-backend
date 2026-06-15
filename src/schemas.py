@@ -11,10 +11,10 @@ class StatusResponse(BaseModel):
 
 
 class ActionDataPayload(BaseModel):
-    repository: str
-    commit_sha: str
-    workflow_name: str
-    artifact_version: str | None = None
+    repository: str = Field(min_length=1, max_length=100)
+    commit_sha: str = Field(min_length=1, max_length=40)
+    workflow_name: str = Field(min_length=1, max_length=100)
+    artifact_version: str | None = Field(default=None, max_length=100)
     tags: dict[str, str] = Field(default_factory=dict)
     custom_data: dict[str, Any] = Field(default_factory=dict)
     metrics: dict[str, float] = Field(default_factory=dict)
