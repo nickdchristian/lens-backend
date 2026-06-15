@@ -11,19 +11,16 @@ class DynamoDBRepository(EventRepositoryProtocol):
 
     @override
     async def setup(self) -> None:
-        # DynamoDB tables are typically provisioned via IaC (Terraform/CloudFormation)
         pass
 
     @override
     async def create_event(self, event: ActionEvent) -> ActionEvent:
-        # Single-Table Design mapping
         item = event.model_dump(mode="json")
         item["PK"] = f"REPO#{event.repository}"
         item["SK"] = f"EVENT#{event.timestamp.isoformat()}#{event.commit_sha}"
         item["GSI1PK"] = f"WORKFLOW#{event.workflow_name}"
         item["GSI1SK"] = item["SK"]
 
-        # DynamoDB uses strings for ID, let's use the SK as a unique ID if none provided
         if not item.get("id"):
             item["id"] = item["SK"]
             event.id = item["SK"]

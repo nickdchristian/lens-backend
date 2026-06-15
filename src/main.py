@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -14,7 +16,8 @@ from src.core.limiter import limiter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize connection pools
+    FastAPICache.init(InMemoryBackend())
+
     if settings.database_type == "mongodb":
         if not settings.mongo_uri or not settings.mongo_db_name:
             raise ValueError("mongo_uri and mongo_db_name must be set for mongodb")
@@ -34,12 +37,10 @@ async def lifespan(app: FastAPI):
     else:
         raise ValueError(f"Unsupported database type: {settings.database_type}")
 
-    # Startup logic for indexes/tables
     await setup_db(app)
 
     yield
 
-    # Shutdown connection pools safely
     if settings.database_type == "mongodb":
         app.state.mongo_client.close()
 
@@ -55,11 +56,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Setup Rate Limiting
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
 
-# CORS
 if settings.cors_origins:
     app.add_middleware(
         CORSMiddleware,
@@ -69,7 +68,6 @@ if settings.cors_origins:
         allow_headers=["*"],
     )
 
-# Routers
 app.include_router(events_router)
 
 

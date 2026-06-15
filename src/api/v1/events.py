@@ -2,6 +2,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi_cache.decorator import cache
 
 from src.core.config import settings
 from src.core.database import get_event_repository
@@ -40,6 +41,7 @@ async def create_event(
 
 @router.get("/{repository}", response_model=EventListResponse)
 @limiter.limit(get_api_limit)
+@cache(expire=5)
 async def get_events_by_repo(
     request: Request,
     repository: str,

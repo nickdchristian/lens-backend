@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 import pytest
 from fastapi.testclient import TestClient
 
@@ -33,7 +34,6 @@ async def test_create_event_success(client: TestClient, mock_repo: MockEventRepo
 async def test_create_event_validation_error(
     client: TestClient, mock_repo: MockEventRepository
 ):
-    # Missing required field 'commit_sha'
     payload = {
         "repository": "lens",
         "workflow_name": "ci-build",
@@ -46,10 +46,7 @@ async def test_create_event_validation_error(
 
 
 @pytest.mark.asyncio
-async def test_get_events_success(
-    client: TestClient, mock_repo: MockEventRepository
-):
-    # Insert dummy data
+async def test_get_events_success(client: TestClient, mock_repo: MockEventRepository):
     event1 = ActionEvent(
         id="1", repository="lens", commit_sha="sha1", workflow_name="build"
     )
@@ -69,8 +66,7 @@ async def test_get_events_success(
 
     assert data["status"] == "success"
     assert len(data["events"]) == 2
-    
-    # Verify it only fetched the requested repository
+
     for e in data["events"]:
         assert e["repository"] == "lens"
 
@@ -79,18 +75,16 @@ async def test_get_events_success(
 async def test_get_events_pagination(
     client: TestClient, mock_repo: MockEventRepository
 ):
-    # Insert 15 events
     for i in range(15):
         mock_repo.events.append(
             ActionEvent(
                 id=f"id_{i}",
                 repository="lens",
                 commit_sha=f"sha{i}",
-                workflow_name="build"
+                workflow_name="build",
             )
         )
 
-    # Request only 5
     response = client.get("/api/v1/events/lens?limit=5")
     assert response.status_code == 200
     data = response.json()
@@ -111,13 +105,27 @@ async def test_rate_limiting(client: TestClient):
         "commit_sha": "limit-test",
         "workflow_name": "ci-build",
     }
-    
-    # The default limit is 100/minute. 
-    # Hitting it 101 times sequentially will trigger the rate limiter.
+
     for _ in range(101):
         response = client.post("/api/v1/events", json=payload)
         if response.status_code == 429:
             assert "Rate limit exceeded" in response.text
             return
-            
+
     raise AssertionError("Rate limit was not triggered after 100 requests")
+
+
+@pytest.mark.asyncio
+async def test_caching(client: TestClient, mock_repo: MockEventRepository):
+    # Initial request
+    resp1 = client.get("/api/v1/events/cache-test-repo")
+    assert resp1.status_code == 200
+
+    # 9 subsequent identical requests
+    for _ in range(9):
+        resp = client.get("/api/v1/events/cache-test-repo")
+        assert resp.status_code == 200
+
+    # The database repository should have only been hit exactly ONCE
+    # The other 9 were served directly from the FastAPICache InMemoryBackend
+    assert mock_repo.get_events_call_count == 1
