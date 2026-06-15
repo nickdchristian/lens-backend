@@ -3,9 +3,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 
-from src.config import settings
-from src.database import get_event_repository
-from src.limiter import limiter
+from src.core.config import settings
+from src.core.database import get_event_repository
+from src.core.limiter import limiter
 from src.models import ActionEvent
 from src.repositories.protocol import EventRepositoryProtocol
 from src.schemas import (

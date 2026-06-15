@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator
 import aioboto3  # pyright: ignore[reportMissingTypeStubs]
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from src.config import settings
+from src.core.config import settings
 from src.repositories.dynamo import DynamoDBRepository
 from src.repositories.mongo import MongoRepository
 from src.repositories.protocol import EventRepositoryProtocol

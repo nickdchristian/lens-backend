@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from src.api.routes import router as events_router
-from src.config import settings
-from src.database import init_db
-from src.limiter import limiter
+from src.api.v1.events import router as events_router
+from src.core.config import settings
+from src.core.database import init_db
+from src.core.limiter import limiter
 
 
 @asynccontextmanager
@@ -20,10 +20,12 @@ async def lifespan(app: FastAPI):
     # Shutdown logic if necessary
 
 
+__version__ = "0.1.0"
+
 app = FastAPI(
     title="Lens API",
     description="Event ingestion backend for the Lens application",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
 )
 
