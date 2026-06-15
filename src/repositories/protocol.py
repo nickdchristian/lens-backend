@@ -12,6 +12,8 @@ class EventRepositoryProtocol(Protocol):
         """Saves a new action event to the database."""
         ...
 
-    async def get_events_by_repository(self, repository: str) -> list[ActionEvent]:
+    async def get_events_by_repository(
+        self, repository: str, limit: int = 100
+    ) -> list[ActionEvent]:
         """Fetches events for a specific repository."""
         ...
