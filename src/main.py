@@ -19,6 +19,7 @@ async def lifespan(app: FastAPI):
         if not settings.mongo_uri or not settings.mongo_db_name:
             raise ValueError("mongo_uri and mongo_db_name must be set for mongodb")
         from motor.motor_asyncio import AsyncIOMotorClient
+
         app.state.mongo_client = AsyncIOMotorClient(settings.mongo_uri)
     elif settings.database_type == "dynamodb":
         if not settings.aws_region or not settings.dynamo_table_name:
@@ -26,6 +27,7 @@ async def lifespan(app: FastAPI):
                 "aws_region and dynamo_table_name must be set for dynamodb"
             )
         import aioboto3
+
         app.state.dynamo_session = aioboto3.Session(region_name=settings.aws_region)
     else:
         raise ValueError(f"Unsupported database type: {settings.database_type}")
@@ -40,11 +42,13 @@ async def lifespan(app: FastAPI):
         app.state.mongo_client.close()
 
 
+__title__ = "Lens API"
+__description__ = "Event ingestion backend for the Lens application"
 __version__ = "0.1.0"
 
 app = FastAPI(
-    title="Lens API",
-    description="Event ingestion backend for the Lens application",
+    title=__title__,
+    description=__description__,
     version=__version__,
     lifespan=lifespan,
 )
