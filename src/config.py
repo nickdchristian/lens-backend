@@ -27,6 +27,11 @@ class Settings(BaseSettings):
         default="50/minute", description="Rate limit for general API endpoints"
     )
 
+    # CORS
+    cors_origins: list[str] = Field(
+        default_factory=list, description="Allowed CORS origins"
+    )
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")  # pyright: ignore[reportUnannotatedClassAttribute]
 
 

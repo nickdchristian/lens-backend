@@ -32,7 +32,9 @@ class DynamoDBRepository(EventRepositoryProtocol):
         return event
 
     @override
-    async def get_events_by_repository(self, repository: str) -> list[ActionEvent]:
+    async def get_events_by_repository(
+        self, repository: str, limit: int = 100
+    ) -> list[ActionEvent]:
         response = await self.table.query(
             KeyConditionExpression="PK = :pk AND begins_with(SK, :sk)",
             ExpressionAttributeValues={
@@ -40,6 +42,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
                 ":sk": "EVENT#",
             },
             ScanIndexForward=False,  # Sort descending
+            Limit=limit,
         )
         items = response.get("Items", [])
         return [ActionEvent(**item) for item in items]

@@ -32,8 +32,14 @@ class MongoRepository(EventRepositoryProtocol):
         return event
 
     @override
-    async def get_events_by_repository(self, repository: str) -> list[ActionEvent]:
-        cursor = self.collection.find({"repository": repository}).sort("timestamp", -1)
+    async def get_events_by_repository(
+        self, repository: str, limit: int = 100
+    ) -> list[ActionEvent]:
+        cursor = (
+            self.collection.find({"repository": repository})
+            .sort("timestamp", -1)
+            .limit(limit)
+        )
         documents = await cursor.to_list(length=None)
 
         events: list[ActionEvent] = []
