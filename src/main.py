@@ -1,4 +1,4 @@
-# pyright: reportUnusedParameter=false
+# pyright: reportUnusedParameter=false, reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnusedCallResult=false
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,16 +8,36 @@ from slowapi.errors import RateLimitExceeded
 
 from src.api.v1.events import router as events_router
 from src.core.config import settings
-from src.core.database import init_db
+from src.core.database import setup_db
 from src.core.limiter import limiter
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize DB indexes or perform connections
-    await init_db()
+    # Initialize connection pools
+    if settings.database_type == "mongodb":
+        if not settings.mongo_uri or not settings.mongo_db_name:
+            raise ValueError("mongo_uri and mongo_db_name must be set for mongodb")
+        from motor.motor_asyncio import AsyncIOMotorClient
+        app.state.mongo_client = AsyncIOMotorClient(settings.mongo_uri)
+    elif settings.database_type == "dynamodb":
+        if not settings.aws_region or not settings.dynamo_table_name:
+            raise ValueError(
+                "aws_region and dynamo_table_name must be set for dynamodb"
+            )
+        import aioboto3
+        app.state.dynamo_session = aioboto3.Session(region_name=settings.aws_region)
+    else:
+        raise ValueError(f"Unsupported database type: {settings.database_type}")
+
+    # Startup logic for indexes/tables
+    await setup_db(app)
+
     yield
-    # Shutdown logic if necessary
+
+    # Shutdown connection pools safely
+    if settings.database_type == "mongodb":
+        app.state.mongo_client.close()
 
 
 __version__ = "0.1.0"
