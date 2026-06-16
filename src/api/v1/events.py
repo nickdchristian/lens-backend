@@ -20,10 +20,12 @@ router = APIRouter(prefix="/api/v1/events", tags=["events"])
 
 
 def get_events_limit() -> str:
+    """Return the rate limit for fetching events."""
     return settings.rate_limit_events
 
 
 def get_api_limit() -> str:
+    """Return the general API rate limit."""
     return settings.rate_limit_api
 
 
@@ -35,6 +37,7 @@ async def create_event(
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
     background_tasks: BackgroundTasks,
 ):
+    """Ingest a new CI/CD action event asynchronously."""
     event = ActionEvent(**payload.model_dump())
     background_tasks.add_task(repo.create_event, event)
     return StatusResponse(status="success", message="Event accepted for processing")
@@ -49,6 +52,7 @@ async def get_events_by_repo(
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
 ):
+    """Retrieve a list of action events for a specific repository."""
     events = await repo.get_events_by_repository(repository, limit=limit)
     response_events = [ActionResponse.model_validate(e) for e in events]
     return EventListResponse(status="success", events=response_events)

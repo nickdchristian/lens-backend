@@ -14,6 +14,7 @@ from src.repositories.protocol import EventRepositoryProtocol
 
 class MockEventRepository(EventRepositoryProtocol):
     def __init__(self) -> None:
+        """Initialize an empty mock repository."""
         self.events: list[ActionEvent] = []
         self.get_events_call_count: int = 0
 
@@ -39,6 +40,10 @@ class MockEventRepository(EventRepositoryProtocol):
         filtered.sort(key=lambda x: x.timestamp, reverse=True)
         return filtered[:limit]
 
+    @override
+    async def ping(self) -> bool:
+        return True
+
 
 mock_repo_instance = MockEventRepository()
 
@@ -46,11 +51,13 @@ mock_repo_instance = MockEventRepository()
 async def override_get_event_repository(
     request: Request,
 ) -> AsyncGenerator[EventRepositoryProtocol, None]:
+    """Dependency override that yields the MockEventRepository."""
     yield mock_repo_instance
 
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
+    """Return a TestClient configured with mock dependencies."""
     app.dependency_overrides[get_event_repository] = override_get_event_repository
     with TestClient(app) as c:
         yield c
@@ -59,6 +66,7 @@ def client() -> Generator[TestClient, None, None]:
 
 @pytest.fixture
 def mock_repo() -> Generator[MockEventRepository, None, None]:
+    """Return the MockEventRepository instance after clearing its state."""
     mock_repo_instance.events.clear()
     mock_repo_instance.get_events_call_count = 0
     yield mock_repo_instance

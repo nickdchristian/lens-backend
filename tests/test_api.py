@@ -8,6 +8,7 @@ from tests.conftest import MockEventRepository
 
 @pytest.mark.asyncio
 async def test_create_event_success(client: TestClient, mock_repo: MockEventRepository):
+    """Test successful creation of an event."""
     payload = {
         "repository": "lens",
         "commit_sha": "abc123def456",
@@ -34,6 +35,7 @@ async def test_create_event_success(client: TestClient, mock_repo: MockEventRepo
 async def test_create_event_validation_error(
     client: TestClient, mock_repo: MockEventRepository
 ):
+    """Test event creation with invalid payload."""
     payload = {
         "repository": "lens",
         "workflow_name": "ci-build",
@@ -47,6 +49,7 @@ async def test_create_event_validation_error(
 
 @pytest.mark.asyncio
 async def test_get_events_success(client: TestClient, mock_repo: MockEventRepository):
+    """Test fetching events for a specific repository."""
     event1 = ActionEvent(
         id="1", repository="lens", commit_sha="sha1", workflow_name="build"
     )
@@ -75,6 +78,7 @@ async def test_get_events_success(client: TestClient, mock_repo: MockEventReposi
 async def test_get_events_pagination(
     client: TestClient, mock_repo: MockEventRepository
 ):
+    """Test pagination for fetched events."""
     for i in range(15):
         mock_repo.events.append(
             ActionEvent(
@@ -93,6 +97,7 @@ async def test_get_events_pagination(
 
 @pytest.mark.asyncio
 async def test_health_check(client: TestClient):
+    """Test the health check endpoint."""
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
@@ -100,6 +105,7 @@ async def test_health_check(client: TestClient):
 
 @pytest.mark.asyncio
 async def test_rate_limiting(client: TestClient):
+    """Test API rate limiting."""
     payload = {
         "repository": "lens",
         "commit_sha": "limit-test",
@@ -117,6 +123,7 @@ async def test_rate_limiting(client: TestClient):
 
 @pytest.mark.asyncio
 async def test_caching(client: TestClient, mock_repo: MockEventRepository):
+    """Test response caching."""
     # Initial request
     resp1 = client.get("/api/v1/events/cache-test-repo")
     assert resp1.status_code == 200

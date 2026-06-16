@@ -17,3 +17,7 @@ class EventRepositoryProtocol(Protocol):
     ) -> list[ActionEvent]:
         """Fetches events for a specific repository."""
         ...
+
+    async def ping(self) -> bool:
+        """Verify the database connection is healthy."""
+        ...
