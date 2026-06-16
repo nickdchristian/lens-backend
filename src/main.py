@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 __title__ = "Lens API"
 __description__ = "Event ingestion backend for the Lens application"
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 app = FastAPI(
     title=__title__,
