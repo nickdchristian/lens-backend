@@ -1,25 +1,31 @@
-from typing import Literal
+# pyright: reportAny=false, reportExplicitAny=false
+from typing import Annotated, Any, Literal
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def parse_cors(v: Any) -> list[str]:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",") if i.strip()]
+    return v  # pyright: ignore[reportReturnType]
+
+
 class Settings(BaseSettings):
-    database_type: Literal["dynamodb", "mongodb"] = Field(
-        description="The backend database to use (dynamodb or mongodb)"
+    database_type: Literal["dynamodb", "mongodb", "mock"] = Field(
+        description="The backend database to use (dynamodb, mongodb, or mock)"
     )
 
-    # DynamoDB Settings
     dynamo_table_name: str | None = Field(
         default=None, description="DynamoDB table name"
     )
     aws_region: str | None = Field(default=None, description="AWS Region for DynamoDB")
 
-    # MongoDB Settings
     mongo_uri: str | None = Field(default=None, description="MongoDB connection URI")
     mongo_db_name: str | None = Field(default=None, description="MongoDB database name")
 
-    # Rate Limiting
+    redis_url: str | None = Field(default=None, description="Redis connection URI")
+
     rate_limit_events: str = Field(
         default="100/minute", description="Rate limit for event endpoints"
     )
@@ -27,8 +33,7 @@ class Settings(BaseSettings):
         default="50/minute", description="Rate limit for general API endpoints"
     )
 
-    # CORS
-    cors_origins: list[str] = Field(
+    cors_origins: Annotated[list[str], BeforeValidator(parse_cors)] = Field(
         default_factory=list, description="Allowed CORS origins"
     )
 

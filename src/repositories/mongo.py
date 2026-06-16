@@ -2,6 +2,8 @@
 import uuid
 from typing import Any, override
 
+import pymongo
+
 from src.models import ActionEvent
 from src.repositories.protocol import EventRepositoryProtocol
 
@@ -12,11 +14,8 @@ class MongoRepository(EventRepositoryProtocol):
 
     @override
     async def setup(self) -> None:
-        # Create a compound index to ensure get_events_by_repository is performant
-        from pymongo import ASCENDING, DESCENDING
-
         await self.collection.create_index(
-            [("repository", ASCENDING), ("timestamp", DESCENDING)]
+            [("repository", pymongo.ASCENDING), ("timestamp", pymongo.DESCENDING)]
         )
 
     @override
@@ -24,7 +23,6 @@ class MongoRepository(EventRepositoryProtocol):
         if not event.id:
             event.id = str(uuid.uuid4())
 
-        # Insert directly as a document
         doc = event.model_dump(mode="json")
         doc["_id"] = doc.pop("id")
 

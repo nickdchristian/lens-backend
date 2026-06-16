@@ -1,7 +1,8 @@
 # pyright: reportUnusedParameter=false, reportUntypedFunctionDecorator=false, reportUnknownMemberType=false, reportAny=false
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, status
+from fastapi_cache.decorator import cache
 
 from src.core.config import settings
 from src.core.database import get_event_repository
@@ -26,20 +27,22 @@ def get_api_limit() -> str:
     return settings.rate_limit_api
 
 
-@router.post("", response_model=StatusResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=StatusResponse, status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit(get_events_limit)
 async def create_event(
     request: Request,
     payload: ActionDataPayload,
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
+    background_tasks: BackgroundTasks,
 ):
     event = ActionEvent(**payload.model_dump())
-    _ = await repo.create_event(event)
-    return StatusResponse(status="success", message="Event ingested successfully")
+    background_tasks.add_task(repo.create_event, event)
+    return StatusResponse(status="success", message="Event accepted for processing")
 
 
 @router.get("/{repository}", response_model=EventListResponse)
 @limiter.limit(get_api_limit)
+@cache(expire=5)
 async def get_events_by_repo(
     request: Request,
     repository: str,

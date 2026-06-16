@@ -25,3 +25,15 @@ jobs:
       run: uv run ruff check .
     - name: Check formatting with Ruff
       run: uv run ruff format --check .
+    - name: Type checking with Basedpyright
+      run: uv run basedpyright
+    - name: Run Pytest
+      run: uv run pytest
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+    - uses: actions/checkout@v5
+    - name: Build Docker image
+      run: docker build -t lens-backend:latest .
