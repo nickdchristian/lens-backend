@@ -51,7 +51,7 @@ class MongoRepository(EventRepositoryProtocol):
     @override
     async def ping(self) -> bool:
         try:
-            await self.collection.database.client.admin.command('ping')
+            await self.collection.database.client.admin.command("ping")
             return True
         except Exception:
             return False
