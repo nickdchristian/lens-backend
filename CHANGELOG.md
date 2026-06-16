@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/nickdchristian/lens-backend/compare/v0.2.0...v0.3.0) (2026-06-16)
+
+
+### Features
+
+* introduce zero-dependency simple observability and timings ([#6](https://github.com/nickdchristian/lens-backend/issues/6)) ([6c85569](https://github.com/nickdchristian/lens-backend/commit/6c85569959c0d87e9b7b70c6acd07c3a0e374255))
+
 ## [0.2.0](https://github.com/nickdchristian/lens-backend/compare/v0.1.0...v0.2.0) (2026-06-16)
 
 
