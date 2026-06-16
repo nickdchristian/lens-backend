@@ -10,7 +10,7 @@ def setup_logging() -> None:
         stream=sys.stdout,
         level=logging.INFO,
     )
-    
+
     for logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
         logger = logging.getLogger(logger_name)
         logger.handlers = []

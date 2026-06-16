@@ -44,7 +44,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
         )
         items = response.get("Items", [])
         return [ActionEvent(**item) for item in items]
-        
+
     @override
     async def ping(self) -> bool:
         try:

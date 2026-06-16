@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     """Manage the application lifecycle, including logging and database setup."""
     setup_logging()
     logger.info("Starting up Lens Backend")
-    
+
     if settings.redis_url:
         redis = aioredis.from_url(settings.redis_url)
         FastAPICache.init(RedisBackend(redis))
@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI):
 
     if settings.database_type == "mongodb":
         app.state.mongo_client.close()
-        
+
     logger.info("Shutting down Lens Backend")
 
 
@@ -78,8 +78,9 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
 
+
 @app.middleware("http")
-async def timing_middleware(request: Request, call_next): # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
+async def timing_middleware(request: Request, call_next):  # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
     """Intercept requests to calculate and log execution time."""
     start_time = time.perf_counter()
     response = await call_next(request)
@@ -89,6 +90,7 @@ async def timing_middleware(request: Request, call_next): # pyright: ignore[repo
         f"{response.status_code} - {process_time * 1000:.2f}ms"
     )
     return response
+
 
 if settings.cors_origins:
     app.add_middleware(
@@ -111,8 +113,8 @@ async def health_check(
     if not is_db_alive:
         logger.error("Health check failed: Database is unreachable")
         raise HTTPException(
-            status_code=503, 
-            detail={"status": "error", "checks": {"database": "unreachable"}}
+            status_code=503,
+            detail={"status": "error", "checks": {"database": "unreachable"}},
         )
-        
+
     return {"status": "ok"}
