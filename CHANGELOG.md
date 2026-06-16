@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/nickdchristian/lens-backend/compare/v0.1.0...v0.2.0) (2026-06-16)
+
+
+### Features
+
+* add docker, tests, and clean up ([#4](https://github.com/nickdchristian/lens-backend/issues/4)) ([af67671](https://github.com/nickdchristian/lens-backend/commit/af67671332ee0c61be285cc54cc8e59ac56ed9a4))
+
 ## 0.1.0 (2026-06-15)
 
 
