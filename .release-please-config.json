@@ -3,7 +3,10 @@
     ".": {
       "release-type": "python",
       "extra-files": [
-        "src/main.py"
+        {
+          "type": "python",
+          "path": "src/main.py"
+        }
       ]
     }
   }
