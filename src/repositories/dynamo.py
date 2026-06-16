@@ -7,6 +7,7 @@ from src.repositories.protocol import EventRepositoryProtocol
 
 class DynamoDBRepository(EventRepositoryProtocol):
     def __init__(self, table: Any):
+        """Initialize the DynamoDB repository with a boto3 Table instance."""
         self.table = table
 
     @override
@@ -43,3 +44,12 @@ class DynamoDBRepository(EventRepositoryProtocol):
         )
         items = response.get("Items", [])
         return [ActionEvent(**item) for item in items]
+        
+    @override
+    async def ping(self) -> bool:
+        try:
+            async with self.table.meta.client as client:
+                await client.describe_table(TableName=self.table.name)
+            return True
+        except Exception:
+            return False

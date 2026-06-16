@@ -10,6 +10,7 @@ from src.repositories.protocol import EventRepositoryProtocol
 
 class MongoRepository(EventRepositoryProtocol):
     def __init__(self, collection: Any):
+        """Initialize the MongoDB repository with a motor Collection instance."""
         self.collection = collection
 
     @override
@@ -46,3 +47,11 @@ class MongoRepository(EventRepositoryProtocol):
             events.append(ActionEvent(**doc))
 
         return events
+
+    @override
+    async def ping(self) -> bool:
+        try:
+            await self.collection.database.client.admin.command('ping')
+            return True
+        except Exception:
+            return False

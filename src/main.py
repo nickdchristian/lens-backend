@@ -1,7 +1,10 @@
 # pyright: reportUnusedParameter=false, reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnusedCallResult=false
+import logging
+import time
 from contextlib import asynccontextmanager
+from typing import Annotated
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
@@ -12,12 +15,20 @@ from slowapi.errors import RateLimitExceeded
 
 from src.api.v1.events import router as events_router
 from src.core.config import settings
-from src.core.database import setup_db
+from src.core.database import get_event_repository, setup_db
 from src.core.limiter import limiter
+from src.core.logging import setup_logging
+from src.repositories.protocol import EventRepositoryProtocol
+
+logger = logging.getLogger("src.main")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Manage the application lifecycle, including logging and database setup."""
+    setup_logging()
+    logger.info("Starting up Lens Backend")
+    
     if settings.redis_url:
         redis = aioredis.from_url(settings.redis_url)
         FastAPICache.init(RedisBackend(redis))
@@ -49,6 +60,8 @@ async def lifespan(app: FastAPI):
 
     if settings.database_type == "mongodb":
         app.state.mongo_client.close()
+        
+    logger.info("Shutting down Lens Backend")
 
 
 __title__ = "Lens API"
@@ -65,6 +78,18 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
 
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next): # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
+    """Intercept requests to calculate and log execution time."""
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+    logger.info(
+        f"{request.method} {request.url.path} - "
+        f"{response.status_code} - {process_time * 1000:.2f}ms"
+    )
+    return response
+
 if settings.cors_origins:
     app.add_middleware(
         CORSMiddleware,
@@ -78,5 +103,16 @@ app.include_router(events_router)
 
 
 @app.get("/health")
-async def health_check():
+async def health_check(
+    repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
+):
+    """Verify application and database health."""
+    is_db_alive = await repo.ping()
+    if not is_db_alive:
+        logger.error("Health check failed: Database is unreachable")
+        raise HTTPException(
+            status_code=503, 
+            detail={"status": "error", "checks": {"database": "unreachable"}}
+        )
+        
     return {"status": "ok"}
