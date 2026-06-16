@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     mongo_uri: str | None = Field(default=None, description="MongoDB connection URI")
     mongo_db_name: str | None = Field(default=None, description="MongoDB database name")
 
+    redis_url: str | None = Field(default=None, description="Redis connection URI")
+
     rate_limit_events: str = Field(
         default="100/minute", description="Rate limit for event endpoints"
     )

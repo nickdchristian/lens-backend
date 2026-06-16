@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.backends.redis import RedisBackend
+from redis import asyncio as aioredis
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -16,7 +18,11 @@ from src.core.limiter import limiter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    FastAPICache.init(InMemoryBackend())
+    if settings.redis_url:
+        redis = aioredis.from_url(settings.redis_url)
+        FastAPICache.init(RedisBackend(redis))
+    else:
+        FastAPICache.init(InMemoryBackend())
 
     if settings.database_type == "mongodb":
         if not settings.mongo_uri or not settings.mongo_db_name:

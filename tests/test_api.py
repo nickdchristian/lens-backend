@@ -20,7 +20,7 @@ async def test_create_event_success(client: TestClient, mock_repo: MockEventRepo
 
     response = client.post("/api/v1/events", json=payload)
 
-    assert response.status_code == 201
+    assert response.status_code == 202
     data = response.json()
     assert data["status"] == "success"
 
