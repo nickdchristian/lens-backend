@@ -45,8 +45,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
             },
             ExpressionAttributeNames={"#ts": "timestamp"},
             ProjectionExpression=(
-                "id, repository, commit_sha, workflow_name, "
-                "artifact_version, #ts, tags"
+                "id, repository, commit_sha, workflow_name, artifact_version, #ts, tags"
             ),
             ScanIndexForward=False,  # Sort descending
             Limit=skip + limit,
@@ -67,8 +66,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
             },
             ExpressionAttributeNames={"#ts": "timestamp"},
             ProjectionExpression=(
-                "id, repository, commit_sha, workflow_name, "
-                "artifact_version, #ts, tags"
+                "id, repository, commit_sha, workflow_name, artifact_version, #ts, tags"
             ),
             ScanIndexForward=False,  # Sort descending
             Limit=skip + limit,
