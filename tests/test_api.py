@@ -146,9 +146,12 @@ async def test_authentication(client: TestClient):
     from src.core.limiter import limiter
     from src.main import app
 
-    limiter._storage.storage.clear()
+    # Clear rate limiter memory since previous tests might have exhausted it
+    limiter.reset()
+    if hasattr(limiter, "_storage") and hasattr(limiter._storage, "storage"):  # pyright: ignore[reportPrivateUsage]
+        limiter._storage.storage.clear()  # pyright: ignore[reportPrivateUsage, reportAttributeAccessIssue]
 
-    app.dependency_overrides.pop(verify_ingestion_auth, None)
+    _ = app.dependency_overrides.pop(verify_ingestion_auth, None)
 
     original_api_key = settings.api_key
     settings.api_key = "secret_test_key"
