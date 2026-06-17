@@ -6,6 +6,7 @@ import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
 
+from src.api.dependencies import verify_ingestion_auth
 from src.core.database import get_event_repository
 from src.main import app
 from src.models import ActionEvent
@@ -65,10 +66,15 @@ async def override_get_event_repository(
     yield mock_repo_instance
 
 
+async def override_verify_ingestion_auth() -> None:
+    pass
+
+
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
     """Return a TestClient configured with mock dependencies."""
     app.dependency_overrides[get_event_repository] = override_get_event_repository
+    app.dependency_overrides[verify_ingestion_auth] = override_verify_ingestion_auth
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

@@ -27,6 +27,10 @@ class Settings(BaseSettings):
 
     redis_url: str | None = Field(default=None, description="Redis connection URI")
 
+    api_key: str | None = Field(
+        default=None, description="Global API Key for ingestion authentication"
+    )
+
     rate_limit_events: str = Field(
         default="100/minute", description="Rate limit for event endpoints"
     )
