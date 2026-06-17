@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, status
 from fastapi_cache.decorator import cache
 
+from src.api.dependencies import verify_ingestion_auth
 from src.core.config import settings
 from src.core.database import get_event_repository
 from src.core.limiter import limiter
@@ -29,7 +30,12 @@ def get_api_limit() -> str:
     return settings.rate_limit_api
 
 
-@router.post("", response_model=StatusResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "",
+    response_model=StatusResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(verify_ingestion_auth)],
+)
 @limiter.limit(get_events_limit)
 async def create_event(
     request: Request,

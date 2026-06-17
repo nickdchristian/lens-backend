@@ -136,3 +136,58 @@ async def test_caching(client: TestClient, mock_repo: MockEventRepository):
     # The database repository should have only been hit exactly ONCE
     # The other 9 were served directly from the FastAPICache InMemoryBackend
     assert mock_repo.get_events_call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_authentication(client: TestClient):
+    """Test that the API key authentication works."""
+    from src.api.dependencies import verify_ingestion_auth
+    from src.core.config import settings
+    from src.core.limiter import limiter
+    from src.main import app
+
+    # Clear rate limiter memory since previous tests might have exhausted it
+    limiter._storage.storage.clear()
+
+    # Remove the dependency override specifically for this test
+    app.dependency_overrides.pop(verify_ingestion_auth, None)
+
+    # Backup the original api_key
+    original_api_key = settings.api_key
+    settings.api_key = "secret_test_key"
+
+    try:
+        payload = {
+            "repository": "lens",
+            "commit_sha": "auth-test",
+            "workflow_name": "ci-build",
+        }
+
+        # 1. Test without header -> 401
+        resp_no_auth = client.post("/api/v1/events", json=payload)
+        assert resp_no_auth.status_code == 401
+
+        # 2. Test with wrong header -> 401
+        resp_wrong_auth = client.post(
+            "/api/v1/events", json=payload, headers={"X-API-Key": "wrong"}
+        )
+        assert resp_wrong_auth.status_code == 401
+
+        # 3. Test with correct X-API-Key header -> 202
+        resp_correct_auth = client.post(
+            "/api/v1/events", json=payload, headers={"X-API-Key": "secret_test_key"}
+        )
+        assert resp_correct_auth.status_code == 202
+        
+        # 4. Test with Bearer token -> 202
+        resp_bearer = client.post(
+            "/api/v1/events", json=payload, headers={"Authorization": "Bearer secret_test_key"}
+        )
+        assert resp_bearer.status_code == 202
+
+    finally:
+        # Restore state
+        settings.api_key = original_api_key
+        # Restore the override for subsequent tests if any
+        from tests.conftest import override_verify_ingestion_auth
+        app.dependency_overrides[verify_ingestion_auth] = override_verify_ingestion_auth

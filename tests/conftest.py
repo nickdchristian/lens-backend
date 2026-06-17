@@ -65,10 +65,16 @@ async def override_get_event_repository(
     yield mock_repo_instance
 
 
+from src.api.dependencies import verify_ingestion_auth
+
+async def override_verify_ingestion_auth() -> None:
+    pass
+
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
     """Return a TestClient configured with mock dependencies."""
     app.dependency_overrides[get_event_repository] = override_get_event_repository
+    app.dependency_overrides[verify_ingestion_auth] = override_verify_ingestion_auth
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
