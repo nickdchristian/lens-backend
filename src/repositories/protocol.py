@@ -13,9 +13,13 @@ class EventRepositoryProtocol(Protocol):
         ...
 
     async def get_events_by_repository(
-        self, repository: str, limit: int = 100
+        self, repository: str, skip: int = 0, limit: int = 25
     ) -> list[ActionEvent]:
         """Fetches events for a specific repository."""
+        ...
+
+    async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
+        """Fetches all events across all repositories."""
         ...
 
     async def ping(self) -> bool:
