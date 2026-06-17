@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/nickdchristian/lens-backend/compare/v0.4.0...v0.4.1) (2026-06-17)
+
+
+### Performance Improvements
+
+* optimize dynamodb usage (remove scans, project expressions,increase cache) ([#15](https://github.com/nickdchristian/lens-backend/issues/15)) ([95fe7c3](https://github.com/nickdchristian/lens-backend/commit/95fe7c36a6e1928159c5c6c84d57b858561c0224))
+
 ## [0.4.0](https://github.com/nickdchristian/lens-backend/compare/v0.3.0...v0.4.0) (2026-06-17)
 
 
