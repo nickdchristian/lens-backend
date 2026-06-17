@@ -172,9 +172,11 @@ async def test_authentication(client: TestClient):
             "/api/v1/events", json=payload, headers={"X-API-Key": "secret_test_key"}
         )
         assert resp_correct_auth.status_code == 202
-        
+
         resp_bearer = client.post(
-            "/api/v1/events", json=payload, headers={"Authorization": "Bearer secret_test_key"}
+            "/api/v1/events",
+            json=payload,
+            headers={"Authorization": "Bearer secret_test_key"},
         )
         assert resp_bearer.status_code == 202
 

@@ -67,8 +67,10 @@ async def override_get_event_repository(
 
 from src.api.dependencies import verify_ingestion_auth
 
+
 async def override_verify_ingestion_auth() -> None:
     pass
+
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
