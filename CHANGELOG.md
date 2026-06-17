@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/nickdchristian/lens-backend/compare/v0.4.1...v0.5.0) (2026-06-17)
+
+
+### Features
+
+* add basic API auth ([#17](https://github.com/nickdchristian/lens-backend/issues/17)) ([31f7e56](https://github.com/nickdchristian/lens-backend/commit/31f7e567fce7594e439e3fe211461a7db19d39cc))
+
 ## [0.4.1](https://github.com/nickdchristian/lens-backend/compare/v0.4.0...v0.4.1) (2026-06-17)
 
 

@@ -1,6 +1,6 @@
 [project]
 name = "lens-backend"
-version = "0.4.1"
+version = "0.5.0"
 description = "Backend for Lens application"
 readme = "README.md"
 requires-python = ">=3.12"
