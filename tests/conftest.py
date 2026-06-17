@@ -33,12 +33,22 @@ class MockEventRepository(EventRepositoryProtocol):
 
     @override
     async def get_events_by_repository(
-        self, repository: str, limit: int = 100
+        self, repository: str, skip: int = 0, limit: int = 25
     ) -> list[ActionEvent]:
         self.get_events_call_count += 1
-        filtered = [e for e in self.events if e.repository == repository]
-        filtered.sort(key=lambda x: x.timestamp, reverse=True)
-        return filtered[:limit]
+        events = [e for e in self.events if e.repository == repository]
+        events.sort(key=lambda x: x.timestamp or "", reverse=True)
+        if skip > 0:
+            events = events[skip:]
+        return events[:limit]
+
+    @override
+    async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
+        events = list(self.events)
+        events.sort(key=lambda x: x.timestamp or "", reverse=True)
+        if skip > 0:
+            events = events[skip:]
+        return events[:limit]
 
     @override
     async def ping(self) -> bool:

@@ -43,6 +43,21 @@ async def create_event(
     return StatusResponse(status="success", message="Event accepted for processing")
 
 
+@router.get("", response_model=EventListResponse)
+@limiter.limit(get_api_limit)
+@cache(expire=5)
+async def get_all_events(
+    request: Request,
+    repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 25,
+):
+    """Retrieve a list of all action events."""
+    events = await repo.get_all_events(skip=skip, limit=limit)
+    response_events = [ActionResponse.model_validate(e) for e in events]
+    return EventListResponse(status="success", events=response_events)
+
+
 @router.get("/{repository}", response_model=EventListResponse)
 @limiter.limit(get_api_limit)
 @cache(expire=5)
@@ -50,9 +65,10 @@ async def get_events_by_repo(
     request: Request,
     repository: str,
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
-    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 25,
 ):
     """Retrieve a list of action events for a specific repository."""
-    events = await repo.get_events_by_repository(repository, limit=limit)
+    events = await repo.get_events_by_repository(repository, skip=skip, limit=limit)
     response_events = [ActionResponse.model_validate(e) for e in events]
     return EventListResponse(status="success", events=response_events)

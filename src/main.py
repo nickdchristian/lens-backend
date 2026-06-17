@@ -1,6 +1,7 @@
 # pyright: reportUnusedParameter=false, reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnusedCallResult=false
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -12,6 +13,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.responses import Response
 
 from src.api.v1.events import router as events_router
 from src.core.config import settings
@@ -80,14 +82,16 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # py
 
 
 @app.middleware("http")
-async def timing_middleware(request: Request, call_next):  # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
+async def timing_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     """Intercept requests to calculate and log execution time."""
     start_time = time.perf_counter()
     response = await call_next(request)
     process_time = time.perf_counter() - start_time
     logger.info(
-        f"{request.method} {request.url.path} - "
-        f"{response.status_code} - {process_time * 1000:.2f}ms"
+        f"{request.method} {request.url.path} - {response.status_code} "
+        + f"- {process_time * 1000:.2f}ms"
     )
     return response
 

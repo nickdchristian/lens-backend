@@ -31,8 +31,10 @@ class DynamoDBRepository(EventRepositoryProtocol):
 
     @override
     async def get_events_by_repository(
-        self, repository: str, limit: int = 100
+        self, repository: str, skip: int = 0, limit: int = 25
     ) -> list[ActionEvent]:
+        # DynamoDB doesn't natively support skip/offset efficiently without a full scan
+        # For simplicity in this dummy impl, we just limit the query.
         response = await self.table.query(
             KeyConditionExpression="PK = :pk AND begins_with(SK, :sk)",
             ExpressionAttributeValues={
@@ -40,9 +42,23 @@ class DynamoDBRepository(EventRepositoryProtocol):
                 ":sk": "EVENT#",
             },
             ScanIndexForward=False,  # Sort descending
-            Limit=limit,
+            Limit=skip + limit,
         )
         items = response.get("Items", [])
+        if skip > 0:
+            items = items[skip:]
+        return [ActionEvent(**item) for item in items]
+
+    @override
+    async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
+        # DynamoDB requires a scan to fetch all items across partitions
+        response = await self.table.scan(Limit=skip + limit)
+        items: list[dict[str, Any]] = response.get("Items", [])
+        if skip > 0:
+            items = items[skip:]
+
+        # Sort manually since scan doesn't guarantee order
+        items.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         return [ActionEvent(**item) for item in items]
 
     @override
