@@ -45,7 +45,7 @@ async def create_event(
 
 @router.get("", response_model=EventListResponse)
 @limiter.limit(get_api_limit)
-@cache(expire=5)
+@cache(expire=300)
 async def get_all_events(
     request: Request,
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
@@ -60,7 +60,7 @@ async def get_all_events(
 
 @router.get("/{repository}", response_model=EventListResponse)
 @limiter.limit(get_api_limit)
-@cache(expire=5)
+@cache(expire=300)
 async def get_events_by_repo(
     request: Request,
     repository: str,

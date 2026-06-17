@@ -21,6 +21,8 @@ class DynamoDBRepository(EventRepositoryProtocol):
         item["SK"] = f"EVENT#{event.timestamp.isoformat()}#{event.commit_sha}"
         item["GSI1PK"] = f"WORKFLOW#{event.workflow_name}"
         item["GSI1SK"] = item["SK"]
+        item["GSI2PK"] = "EVENT"
+        item["GSI2SK"] = item["SK"]
 
         if not item.get("id"):
             item["id"] = item["SK"]
@@ -41,6 +43,11 @@ class DynamoDBRepository(EventRepositoryProtocol):
                 ":pk": f"REPO#{repository}",
                 ":sk": "EVENT#",
             },
+            ExpressionAttributeNames={"#ts": "timestamp"},
+            ProjectionExpression=(
+                "id, repository, commit_sha, workflow_name, "
+                "artifact_version, #ts, tags"
+            ),
             ScanIndexForward=False,  # Sort descending
             Limit=skip + limit,
         )
@@ -51,14 +58,25 @@ class DynamoDBRepository(EventRepositoryProtocol):
 
     @override
     async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
-        # DynamoDB requires a scan to fetch all items across partitions
-        response = await self.table.scan(Limit=skip + limit)
+        # Use GSI2 to fetch all events sorted by timestamp
+        response = await self.table.query(
+            IndexName="GSI2",
+            KeyConditionExpression="GSI2PK = :pk",
+            ExpressionAttributeValues={
+                ":pk": "EVENT",
+            },
+            ExpressionAttributeNames={"#ts": "timestamp"},
+            ProjectionExpression=(
+                "id, repository, commit_sha, workflow_name, "
+                "artifact_version, #ts, tags"
+            ),
+            ScanIndexForward=False,  # Sort descending
+            Limit=skip + limit,
+        )
         items: list[dict[str, Any]] = response.get("Items", [])
         if skip > 0:
             items = items[skip:]
 
-        # Sort manually since scan doesn't guarantee order
-        items.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         return [ActionEvent(**item) for item in items]
 
     @override
