@@ -7,6 +7,12 @@ on:
     branches: [ "main" ]
 
 jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@v1
   lint:
     runs-on: ubuntu-latest
     steps:
