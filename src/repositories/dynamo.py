@@ -47,7 +47,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
             ProjectionExpression=(
                 "id, repository, commit_sha, workflow_name, artifact_version, #ts, tags"
             ),
-            ScanIndexForward=False,  # Sort descending
+            ScanIndexForward=False,
             Limit=skip + limit,
         )
         items = response.get("Items", [])
@@ -57,7 +57,6 @@ class DynamoDBRepository(EventRepositoryProtocol):
 
     @override
     async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
-        # Use GSI2 to fetch all events sorted by timestamp
         response = await self.table.query(
             IndexName="GSI2",
             KeyConditionExpression="GSI2PK = :pk",
@@ -68,7 +67,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
             ProjectionExpression=(
                 "id, repository, commit_sha, workflow_name, artifact_version, #ts, tags"
             ),
-            ScanIndexForward=False,  # Sort descending
+            ScanIndexForward=False,
             Limit=skip + limit,
         )
         items: list[dict[str, Any]] = response.get("Items", [])

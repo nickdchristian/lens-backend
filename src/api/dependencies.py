@@ -6,7 +6,6 @@ from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBea
 
 from src.core.config import settings
 
-# We accept both X-API-Key and Bearer tokens to lay the groundwork for OIDC.
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 bearer_token = HTTPBearer(auto_error=False)
 
@@ -22,7 +21,6 @@ async def verify_ingestion_auth(
     Future OIDC implementation will verify the JWT signature here if a Bearer
     token is provided.
     """
-    # Extract the provided token from either header
     provided_token = api_key or (bearer.credentials if bearer else None)
 
     if not provided_token:
@@ -32,7 +30,6 @@ async def verify_ingestion_auth(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Securely compare the provided token against the configured API key
     if not settings.api_key or not secrets.compare_digest(
         provided_token, settings.api_key
     ):
