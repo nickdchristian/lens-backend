@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/nickdchristian/lens-backend/compare/v0.5.0...v0.6.0) (2026-06-18)
+
+
+### Features
+
+* unified schema ([#19](https://github.com/nickdchristian/lens-backend/issues/19)) ([82568b2](https://github.com/nickdchristian/lens-backend/commit/82568b20bb5ecc1e0d1f3777f560c750e4b573b9))
+
 ## [0.5.0](https://github.com/nickdchristian/lens-backend/compare/v0.4.1...v0.5.0) (2026-06-17)
 
 
