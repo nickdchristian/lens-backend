@@ -13,7 +13,7 @@ async def test_create_event_success(client: TestClient, mock_repo: MockEventRepo
         "repository": "lens",
         "commit_sha": "abc123def456",
         "workflow_name": "ci-build",
-        "artifact_version": "v1.0.0",
+        "artifact": {"name": "lens-action", "version": "v1.0.0"},
         "tags": {"env": "prod"},
         "custom_data": {"tests_passed": True},
         "metrics": {"build_time": 42.5},
@@ -35,9 +35,8 @@ async def test_create_event_success(client: TestClient, mock_repo: MockEventRepo
 async def test_create_event_validation_error(
     client: TestClient, mock_repo: MockEventRepository
 ):
-    """Test event creation with invalid payload."""
+    """Test event creation with invalid payload (missing both contexts)."""
     payload = {
-        "repository": "lens",
         "workflow_name": "ci-build",
     }
 

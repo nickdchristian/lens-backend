@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class StatusResponse(BaseModel):
@@ -10,22 +10,35 @@ class StatusResponse(BaseModel):
     message: str
 
 
+class ArtifactData(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    version: str = Field(min_length=1, max_length=100)
+
+
 class ActionDataPayload(BaseModel):
-    repository: str = Field(min_length=1, max_length=100)
-    commit_sha: str = Field(min_length=1, max_length=40)
     workflow_name: str = Field(min_length=1, max_length=100)
-    artifact_version: str | None = Field(default=None, max_length=100)
+    repository: str | None = Field(default=None, min_length=1, max_length=100)
+    commit_sha: str | None = Field(default=None, min_length=1, max_length=40)
+    artifact: ArtifactData | None = None
     tags: dict[str, str] = Field(default_factory=dict)
     custom_data: dict[str, Any] = Field(default_factory=dict)
     metrics: dict[str, float] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def check_context(self) -> "ActionDataPayload":
+        if not self.repository and not self.artifact:
+            raise ValueError(
+                "Event must have either 'repository' or 'artifact' context"
+            )
+        return self
+
 
 class ActionResponse(BaseModel):
     id: str
-    repository: str
-    commit_sha: str
     workflow_name: str
-    artifact_version: str | None = None
+    repository: str | None = None
+    commit_sha: str | None = None
+    artifact: ArtifactData | None = None
     tags: dict[str, str] = Field(default_factory=dict)
     custom_data: dict[str, Any] = Field(default_factory=dict)
     metrics: dict[str, float] = Field(default_factory=dict)
