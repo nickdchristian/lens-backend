@@ -5,9 +5,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
-class ArtifactData(BaseModel):
-    name: str
-    version: str
+from src.schemas import ArtifactData
 
 
 class ActionEvent(BaseModel):
