@@ -5,12 +5,17 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class ArtifactData(BaseModel):
+    name: str
+    version: str
+
+
 class ActionEvent(BaseModel):
     id: str | None = None
-    repository: str
-    commit_sha: str
     workflow_name: str
-    artifact_version: str | None = None
+    repository: str | None = None
+    commit_sha: str | None = None
+    artifact: ArtifactData | None = None
 
     tags: dict[str, str] = Field(default_factory=dict)
     custom_data: dict[str, Any] = Field(default_factory=dict)
