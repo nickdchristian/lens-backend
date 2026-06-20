@@ -25,3 +25,9 @@ class EventRepositoryProtocol(Protocol):
     async def ping(self) -> bool:
         """Verify the database connection is healthy."""
         ...
+
+    async def get_aggregated_metrics(
+        self, repository: str, metric_key: str, time_period: str, is_sum: bool
+    ) -> list[dict[str, float | int]]:
+        """Fetch aggregated metrics bucketed by time period."""
+        ...
