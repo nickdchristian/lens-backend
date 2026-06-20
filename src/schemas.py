@@ -23,6 +23,7 @@ class ActionDataPayload(BaseModel):
     tags: dict[str, str] = Field(default_factory=dict)
     custom_data: dict[str, Any] = Field(default_factory=dict)
     metrics: dict[str, float] = Field(default_factory=dict)
+    timestamp: datetime | None = None
 
     @model_validator(mode="after")
     def check_context(self) -> "ActionDataPayload":
