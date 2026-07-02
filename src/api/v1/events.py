@@ -138,9 +138,10 @@ async def get_aggregated_metrics(
     time_period: str,
     is_sum: bool,
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
+    artifact_name: Annotated[str | None, Query()] = None,
 ):
     """Retrieve aggregated metrics for a specific repository."""
     data = await repo.get_aggregated_metrics(
-        repository, metric_key, time_period, is_sum
+        repository, metric_key, time_period, is_sum, artifact_name
     )
     return {"status": "success", "data": data}

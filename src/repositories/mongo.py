@@ -122,7 +122,12 @@ class MongoRepository(EventRepositoryProtocol):
 
     @override
     async def get_aggregated_metrics(
-        self, repository: str, metric_key: str, time_period: str, is_sum: bool
+        self,
+        repository: str,
+        metric_key: str,
+        time_period: str,
+        is_sum: bool,
+        artifact_name: str | None = None,
     ) -> list[dict[str, float | int]]:
         from datetime import datetime, timedelta
 
@@ -148,14 +153,16 @@ class MongoRepository(EventRepositoryProtocol):
             else {"$avg": f"$metrics.{metric_key}"}
         )
 
+        match_stage = {
+            "repository": repository,
+            f"metrics.{metric_key}": {"$ne": None},
+            "timestamp": {"$gte": cutoff.isoformat()},
+        }
+        if artifact_name:
+            match_stage["artifact.name"] = artifact_name
+
         pipeline = [
-            {
-                "$match": {
-                    "repository": repository,
-                    f"metrics.{metric_key}": {"$ne": None},
-                    "timestamp": {"$gte": cutoff.isoformat()},
-                }
-            },
+            {"$match": match_stage},
             {"$addFields": {"parsed_date": {"$toDate": "$timestamp"}}},
             {
                 "$group": {

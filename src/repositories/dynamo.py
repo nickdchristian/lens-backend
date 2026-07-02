@@ -151,7 +151,12 @@ class DynamoDBRepository(EventRepositoryProtocol):
 
     @override
     async def get_aggregated_metrics(
-        self, repository: str, metric_key: str, time_period: str, is_sum: bool
+        self,
+        repository: str,
+        metric_key: str,
+        time_period: str,
+        is_sum: bool,
+        artifact_name: str | None = None,
     ) -> list[dict[str, float | int]]:
         import datetime as dt_lib
         from datetime import datetime, timedelta
@@ -175,7 +180,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
                 ":sk_min": f"EVENT#{cutoff_iso}",
             },
             ExpressionAttributeNames={"#ts": "timestamp", "#metrics": "metrics"},
-            ProjectionExpression="#ts, #metrics",
+            ProjectionExpression="#ts, #metrics, artifact",
             ScanIndexForward=False,
             Limit=5000,
         )
@@ -184,6 +189,9 @@ class DynamoDBRepository(EventRepositoryProtocol):
         buckets: dict[str, dict[str, Any]] = {}
 
         for item in items:
+            if artifact_name and item.get("artifact", {}).get("name") != artifact_name:
+                continue
+
             metrics = item.get("metrics", {})
             if metric_key not in metrics or metrics[metric_key] is None:
                 continue

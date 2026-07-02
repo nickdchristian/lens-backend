@@ -34,7 +34,12 @@ class MockEventRepository(EventRepositoryProtocol):
 
     @override
     async def get_aggregated_metrics(
-        self, repository: str, metric_key: str, time_period: str, is_sum: bool
+        self,
+        repository: str,
+        metric_key: str,
+        time_period: str,
+        is_sum: bool,
+        artifact_name: str | None = None,
     ) -> list[dict[str, float | int]]:
         return []
 
