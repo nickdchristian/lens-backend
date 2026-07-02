@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/nickdchristian/lens-backend/compare/v0.6.0...v0.7.0) (2026-07-02)
+
+
+### Features
+
+* add aggregated metrics api endpoint ([52d92f5](https://github.com/nickdchristian/lens-backend/commit/52d92f5443df2123e32f2146dd6ddc6f9211fbe8))
+* allow optional timestamp in action payload ([fdb318c](https://github.com/nickdchristian/lens-backend/commit/fdb318c8e6f0a83c04c01504d9b8f3c1619efa7e))
+* complete architectural redesign and modernization ([11fbe6d](https://github.com/nickdchristian/lens-backend/commit/11fbe6d1f8b8debb9d396b9771ab0a340815f017))
+* implement aggregated metrics in repositories ([56a9268](https://github.com/nickdchristian/lens-backend/commit/56a9268cdd7f9563b019c01dd9e686fe346e180a))
+
+
+### Bug Fixes
+
+* resolve basedpyright type warnings ([9e67226](https://github.com/nickdchristian/lens-backend/commit/9e67226d875e7a6a7259e7d25c9d06fb22abcb74))
+* resolve CI issues and type hints for release ([1537e58](https://github.com/nickdchristian/lens-backend/commit/1537e58259ec1c91d63aa1e5b7272a6d7a593dfa))
+
 ## [0.6.0](https://github.com/nickdchristian/lens-backend/compare/v0.5.0...v0.6.0) (2026-06-18)
 
 
