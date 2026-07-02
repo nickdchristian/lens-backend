@@ -1,4 +1,6 @@
 # pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
+from datetime import UTC, datetime
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -187,3 +189,72 @@ async def test_authentication(client: TestClient):
         from tests.conftest import override_verify_ingestion_auth
 
         app.dependency_overrides[verify_ingestion_auth] = override_verify_ingestion_auth
+
+
+@pytest.mark.asyncio
+async def test_get_unique_repositories(
+    client: TestClient, mock_repo: MockEventRepository
+):
+    mock_repo.events.append(
+        ActionEvent(
+            repository="repo1",
+            commit_sha="123",
+            workflow_name="ci",
+            timestamp=datetime(2023, 1, 1, tzinfo=UTC),
+        )
+    )
+    mock_repo.events.append(
+        ActionEvent(
+            repository="repo2",
+            commit_sha="456",
+            workflow_name="ci",
+            timestamp=datetime(2023, 1, 1, tzinfo=UTC),
+        )
+    )
+    mock_repo.events.append(
+        ActionEvent(
+            repository="repo1",
+            commit_sha="789",
+            workflow_name="ci",
+            timestamp=datetime(2023, 1, 1, tzinfo=UTC),
+        )
+    )
+
+    response = client.get("/api/v1/events/repositories")
+    assert response.status_code == 200
+    repos = response.json()
+    assert set(repos) == {"repo1", "repo2"}
+
+
+@pytest.mark.asyncio
+async def test_get_available_metrics(
+    client: TestClient, mock_repo: MockEventRepository
+):
+    mock_repo.events.append(
+        ActionEvent(
+            repository="repo1",
+            commit_sha="123",
+            workflow_name="ci",
+            timestamp=datetime(2023, 1, 1, tzinfo=UTC),
+            metrics={"m1": 10, "m2": 20},
+        )
+    )
+    mock_repo.events.append(
+        ActionEvent(
+            repository="repo2",
+            commit_sha="456",
+            workflow_name="ci",
+            timestamp=datetime(2023, 1, 1, tzinfo=UTC),
+            metrics={"m3": 30},
+        )
+    )
+
+    response = client.get("/api/v1/events/metrics")
+    assert response.status_code == 200
+    metrics = response.json()
+    assert set(metrics) == {"m1", "m2", "m3"}
+
+    response = client.get("/api/v1/events/metrics?repository=repo1")
+    assert response.status_code == 200
+    metrics = response.json()
+    assert set(metrics) == {"m1", "m2"}
