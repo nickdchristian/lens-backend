@@ -62,21 +62,56 @@ class MockEventRepository(EventRepositoryProtocol):
         self.get_events_call_count += 1
         events = [e for e in self.events if e.repository == repository]
         if search:
-            events = [e for e in events if search.lower() in (e.workflow_name or "").lower() or search.lower() in (e.commit_sha or "").lower()]
+            events = [
+                e
+                for e in events
+                if search.lower() in (e.workflow_name or "").lower()
+                or search.lower() in (e.commit_sha or "").lower()
+            ]
         events.sort(key=lambda x: x.timestamp or "", reverse=True)
         if skip > 0:
             events = events[skip:]
         return events[:limit]
 
     @override
-    async def get_all_events(self, skip: int = 0, limit: int = 25, search: str | None = None) -> list[ActionEvent]:
+    async def get_all_events(
+        self,
+        skip: int = 0,
+        limit: int = 25,
+        search: str | None = None,
+        group_key: str | None = None,
+        group_val: str | None = None,
+    ) -> list[ActionEvent]:
         events = list(self.events)
         if search:
-            events = [e for e in events if search.lower() in (e.workflow_name or "").lower() or search.lower() in (e.commit_sha or "").lower() or search.lower() in (e.repository or "").lower()]
+            events = [
+                e
+                for e in events
+                if search.lower() in (e.workflow_name or "").lower()
+                or search.lower() in (e.commit_sha or "").lower()
+                or search.lower() in (e.repository or "").lower()
+            ]
+        if group_key and group_val:
+            filtered = []
+            for e in events:
+                if (
+                    (e.tags and e.tags.get(group_key) == group_val)
+                    or (e.custom_data and e.custom_data.get(group_key) == group_val)
+                    or getattr(e, group_key, None) == group_val
+                ):
+                    filtered.append(e)
+            events = filtered
         events.sort(key=lambda x: x.timestamp or "", reverse=True)
         if skip > 0:
             events = events[skip:]
         return events[:limit]
+
+    @override
+    async def get_event_by_id(self, event_id: str) -> ActionEvent | None:
+        for e in self.events:
+            if e.id == event_id:
+                return e
+        return None
 
     @override
     async def ping(self) -> bool:

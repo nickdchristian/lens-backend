@@ -1,5 +1,6 @@
 # pyright: reportAny=false, reportExplicitAny=false, reportUnannotatedClassAttribute=false
 import uuid
+from datetime import UTC
 from typing import Any, override
 
 import pymongo
@@ -42,10 +43,7 @@ class MongoRepository(EventRepositoryProtocol):
             ]
 
         cursor = (
-            self.collection.find(query)
-            .sort("timestamp", -1)
-            .skip(skip)
-            .limit(limit)
+            self.collection.find(query).sort("timestamp", -1).skip(skip).limit(limit)
         )
         documents = await cursor.to_list(length=None)
 
@@ -74,31 +72,37 @@ class MongoRepository(EventRepositoryProtocol):
         group_val: str | None = None,
     ) -> list[ActionEvent]:
         query: dict[str, Any] = {}
-        
+
         and_clauses: list[dict[str, Any]] = []
 
         if search:
-            and_clauses.append({
-                "$or": [
-                    {"workflow_name": {"$regex": search, "$options": "i"}},
-                    {"commit_sha": {"$regex": search, "$options": "i"}},
-                    {"repository": {"$regex": search, "$options": "i"}},
-                ]
-            })
+            and_clauses.append(
+                {
+                    "$or": [
+                        {"workflow_name": {"$regex": search, "$options": "i"}},
+                        {"commit_sha": {"$regex": search, "$options": "i"}},
+                        {"repository": {"$regex": search, "$options": "i"}},
+                    ]
+                }
+            )
 
         if group_key and group_val:
-            and_clauses.append({
-                "$or": [
-                    {f"tags.{group_key}": group_val},
-                    {f"custom_data.{group_key}": group_val},
-                    {group_key: group_val}
-                ]
-            })
+            and_clauses.append(
+                {
+                    "$or": [
+                        {f"tags.{group_key}": group_val},
+                        {f"custom_data.{group_key}": group_val},
+                        {group_key: group_val},
+                    ]
+                }
+            )
 
         if and_clauses:
             query["$and"] = and_clauses
 
-        cursor = self.collection.find(query).sort("timestamp", -1).skip(skip).limit(limit)
+        cursor = (
+            self.collection.find(query).sort("timestamp", -1).skip(skip).limit(limit)
+        )
         documents = await cursor.to_list(length=None)
 
         events: list[ActionEvent] = []
@@ -120,53 +124,53 @@ class MongoRepository(EventRepositoryProtocol):
     async def get_aggregated_metrics(
         self, repository: str, metric_key: str, time_period: str, is_sum: bool
     ) -> list[dict[str, float | int]]:
-        from datetime import datetime, timezone, timedelta
-        
-        now = datetime.now(timezone.utc)
+        from datetime import datetime, timedelta
+
+        now = datetime.now(UTC)
         if time_period == "day":
             cutoff = now - timedelta(days=1)
         elif time_period == "week":
             cutoff = now - timedelta(days=7)
         elif time_period == "month":
             cutoff = now - timedelta(days=30)
-        else: # year
+        else:  # year
             cutoff = now - timedelta(days=365)
-            
+
         unit = "hour"
         if time_period in ["week", "month"]:
             unit = "day"
         elif time_period == "year":
             unit = "week"
-            
-        group_op = {"$sum": f"$metrics.{metric_key}"} if is_sum else {"$avg": f"$metrics.{metric_key}"}
+
+        group_op = (
+            {"$sum": f"$metrics.{metric_key}"}
+            if is_sum
+            else {"$avg": f"$metrics.{metric_key}"}
+        )
 
         pipeline = [
-            {"$match": {
-                "repository": repository,
-                f"metrics.{metric_key}": {"$ne": None},
-                "timestamp": {"$gte": cutoff.isoformat()}
-            }},
+            {
+                "$match": {
+                    "repository": repository,
+                    f"metrics.{metric_key}": {"$ne": None},
+                    "timestamp": {"$gte": cutoff.isoformat()},
+                }
+            },
             {"$addFields": {"parsed_date": {"$toDate": "$timestamp"}}},
-            {"$group": {
-                "_id": {
-                    "$dateTrunc": {
-                        "date": "$parsed_date",
-                        "unit": unit
-                    }
-                },
-                "value": group_op
-            }},
-            {"$sort": {"_id": 1}}
+            {
+                "$group": {
+                    "_id": {"$dateTrunc": {"date": "$parsed_date", "unit": unit}},
+                    "value": group_op,
+                }
+            },
+            {"$sort": {"_id": 1}},
         ]
-        
+
         cursor = self.collection.aggregate(pipeline)
         docs = await cursor.to_list(length=None)
-        
+
         return [
-            {
-                "x": int(d["_id"].timestamp() * 1000),
-                "y": d["value"]
-            }
+            {"x": int(d["_id"].timestamp() * 1000), "y": d["value"]}
             for d in docs
             if d["_id"] is not None
         ]
@@ -179,18 +183,18 @@ class MongoRepository(EventRepositoryProtocol):
     async def get_available_metrics(self, repository: str | None = None) -> list[str]:
         # To get unique metric keys, we can use an aggregation pipeline.
         # We need to project the object keys of `metrics` and unwind them.
-        match_stage = {"metrics": {"$type": "object"}}
+        match_stage: dict[str, Any] = {"metrics": {"$type": "object"}}
         if repository:
             match_stage["repository"] = repository
-            
+
         pipeline = [
             {"$match": match_stage},
             {"$project": {"keys": {"$objectToArray": "$metrics"}}},
             {"$unwind": "$keys"},
-            {"$match": {"keys.v": {"$type": "number"}}}, # Only numeric metrics
-            {"$group": {"_id": "$keys.k"}}
+            {"$match": {"keys.v": {"$type": "number"}}},  # Only numeric metrics
+            {"$group": {"_id": "$keys.k"}},
         ]
-        
+
         cursor = self.collection.aggregate(pipeline)
         docs = await cursor.to_list(length=None)
         return [doc["_id"] for doc in docs]

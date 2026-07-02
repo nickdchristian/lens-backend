@@ -62,7 +62,9 @@ async def get_all_events(
     group_val: Annotated[str | None, Query()] = None,
 ):
     """Retrieve a list of all action events."""
-    events = await repo.get_all_events(skip=skip, limit=limit, search=search, group_key=group_key, group_val=group_val)
+    events = await repo.get_all_events(
+        skip=skip, limit=limit, search=search, group_key=group_key, group_val=group_val
+    )
     response_events = [ActionResponse.model_validate(e) for e in events]
     return EventListResponse(status="success", events=response_events)
 
@@ -77,6 +79,7 @@ async def get_event_by_id(
 ):
     """Retrieve a specific action event by its ID."""
     from fastapi import HTTPException
+
     event = await repo.get_event_by_id(event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Artifact not found")
@@ -118,9 +121,12 @@ async def get_events_by_repo(
     search: Annotated[str | None, Query()] = None,
 ):
     """Retrieve a list of action events for a specific repository."""
-    events = await repo.get_events_by_repository(repository, skip=skip, limit=limit, search=search)
+    events = await repo.get_events_by_repository(
+        repository, skip=skip, limit=limit, search=search
+    )
     response_events = [ActionResponse.model_validate(e) for e in events]
     return EventListResponse(status="success", events=response_events)
+
 
 @router.get("/{repository}/metrics/aggregated")
 @limiter.limit(get_api_limit)
@@ -134,5 +140,7 @@ async def get_aggregated_metrics(
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
 ):
     """Retrieve aggregated metrics for a specific repository."""
-    data = await repo.get_aggregated_metrics(repository, metric_key, time_period, is_sum)
+    data = await repo.get_aggregated_metrics(
+        repository, metric_key, time_period, is_sum
+    )
     return {"status": "success", "data": data}
