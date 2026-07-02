@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/nickdchristian/lens-backend/compare/v0.7.0...v0.8.0) (2026-07-02)
+
+
+### Features
+
+* monorepo artifact telemetry ([#24](https://github.com/nickdchristian/lens-backend/issues/24)) ([95a0f03](https://github.com/nickdchristian/lens-backend/commit/95a0f0344a28118eff4e6e6a963f431395b3eb29))
+
 ## [0.7.0](https://github.com/nickdchristian/lens-backend/compare/v0.6.0...v0.7.0) (2026-07-02)
 
 
