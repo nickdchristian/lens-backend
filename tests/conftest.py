@@ -45,14 +45,13 @@ class MockEventRepository(EventRepositoryProtocol):
 
     @override
     async def get_available_metrics(self, repository: str | None = None) -> list[str]:
-        metrics = set()
+        metrics: set[str] = set()
         for e in self.events:
             if repository and e.repository != repository:
                 continue
             if e.metrics:
-                for k, v in e.metrics.items():
-                    if isinstance(v, (int, float)):
-                        metrics.add(k)
+                for k in e.metrics.keys():
+                    metrics.add(k)
         return list(metrics)
 
     @override
@@ -92,7 +91,7 @@ class MockEventRepository(EventRepositoryProtocol):
                 or search.lower() in (e.repository or "").lower()
             ]
         if group_key and group_val:
-            filtered = []
+            filtered: list[ActionEvent] = []
             for e in events:
                 if (
                     (e.tags and e.tags.get(group_key) == group_val)

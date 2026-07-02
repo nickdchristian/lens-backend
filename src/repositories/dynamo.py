@@ -106,7 +106,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
             ]
 
         if group_key and group_val:
-            filtered_items = []
+            filtered_items: list[dict[str, Any]] = []
             for item in items:
                 matches = False
                 if item.get("tags", {}).get(group_key) == group_val:
@@ -218,7 +218,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
             buckets[b_key]["sum"] += float(val)
             buckets[b_key]["count"] += 1
 
-        data = []
+        data: list[dict[str, Any]] = []
         for b in buckets.values():
             y_val = b["sum"] if is_sum else (b["sum"] / b["count"])
             data.append({"x": int(b["date"].timestamp() * 1000), "y": y_val})
@@ -251,7 +251,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
         else:
             response = await self.table.scan(ProjectionExpression="metrics", Limit=1000)
 
-        metrics = set()
+        metrics: set[str] = set()
         for item in response.get("Items", []):
             m = item.get("metrics", {})
             for k, v in m.items():
