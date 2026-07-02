@@ -187,3 +187,29 @@ async def test_authentication(client: TestClient):
         from tests.conftest import override_verify_ingestion_auth
 
         app.dependency_overrides[verify_ingestion_auth] = override_verify_ingestion_auth
+
+@pytest.mark.asyncio
+async def test_get_unique_repositories(client: TestClient, mock_repo: MockEventRepository):
+    mock_repo.events.append(ActionEvent(repository="repo1", commit_sha="123", workflow_name="ci", timestamp="2023-01-01T00:00:00Z"))
+    mock_repo.events.append(ActionEvent(repository="repo2", commit_sha="456", workflow_name="ci", timestamp="2023-01-01T00:00:00Z"))
+    mock_repo.events.append(ActionEvent(repository="repo1", commit_sha="789", workflow_name="ci", timestamp="2023-01-01T00:00:00Z"))
+    
+    response = client.get("/api/v1/events/repositories")
+    assert response.status_code == 200
+    repos = response.json()
+    assert set(repos) == {"repo1", "repo2"}
+
+@pytest.mark.asyncio
+async def test_get_available_metrics(client: TestClient, mock_repo: MockEventRepository):
+    mock_repo.events.append(ActionEvent(repository="repo1", commit_sha="123", workflow_name="ci", timestamp="2023-01-01T00:00:00Z", metrics={"m1": 10, "m2": 20}))
+    mock_repo.events.append(ActionEvent(repository="repo2", commit_sha="456", workflow_name="ci", timestamp="2023-01-01T00:00:00Z", metrics={"m3": 30}))
+    
+    response = client.get("/api/v1/events/metrics")
+    assert response.status_code == 200
+    metrics = response.json()
+    assert set(metrics) == {"m1", "m2", "m3"}
+    
+    response = client.get("/api/v1/events/metrics?repository=repo1")
+    assert response.status_code == 200
+    metrics = response.json()
+    assert set(metrics) == {"m1", "m2"}

@@ -32,10 +32,17 @@ class MongoRepository(EventRepositoryProtocol):
 
     @override
     async def get_events_by_repository(
-        self, repository: str, skip: int = 0, limit: int = 25
+        self, repository: str, skip: int = 0, limit: int = 25, search: str | None = None
     ) -> list[ActionEvent]:
+        query: dict[str, Any] = {"repository": repository}
+        if search:
+            query["$or"] = [
+                {"workflow_name": {"$regex": search, "$options": "i"}},
+                {"commit_sha": {"$regex": search, "$options": "i"}},
+            ]
+
         cursor = (
-            self.collection.find({"repository": repository})
+            self.collection.find(query)
             .sort("timestamp", -1)
             .skip(skip)
             .limit(limit)
@@ -50,8 +57,48 @@ class MongoRepository(EventRepositoryProtocol):
         return events
 
     @override
-    async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
-        cursor = self.collection.find({}).sort("timestamp", -1).skip(skip).limit(limit)
+    async def get_event_by_id(self, event_id: str) -> ActionEvent | None:
+        doc = await self.collection.find_one({"_id": event_id})
+        if not doc:
+            return None
+        doc["id"] = doc.pop("_id")
+        return ActionEvent(**doc)
+
+    @override
+    async def get_all_events(
+        self,
+        skip: int = 0,
+        limit: int = 25,
+        search: str | None = None,
+        group_key: str | None = None,
+        group_val: str | None = None,
+    ) -> list[ActionEvent]:
+        query: dict[str, Any] = {}
+        
+        and_clauses: list[dict[str, Any]] = []
+
+        if search:
+            and_clauses.append({
+                "$or": [
+                    {"workflow_name": {"$regex": search, "$options": "i"}},
+                    {"commit_sha": {"$regex": search, "$options": "i"}},
+                    {"repository": {"$regex": search, "$options": "i"}},
+                ]
+            })
+
+        if group_key and group_val:
+            and_clauses.append({
+                "$or": [
+                    {f"tags.{group_key}": group_val},
+                    {f"custom_data.{group_key}": group_val},
+                    {group_key: group_val}
+                ]
+            })
+
+        if and_clauses:
+            query["$and"] = and_clauses
+
+        cursor = self.collection.find(query).sort("timestamp", -1).skip(skip).limit(limit)
         documents = await cursor.to_list(length=None)
 
         events: list[ActionEvent] = []
@@ -73,6 +120,18 @@ class MongoRepository(EventRepositoryProtocol):
     async def get_aggregated_metrics(
         self, repository: str, metric_key: str, time_period: str, is_sum: bool
     ) -> list[dict[str, float | int]]:
+        from datetime import datetime, timezone, timedelta
+        
+        now = datetime.now(timezone.utc)
+        if time_period == "day":
+            cutoff = now - timedelta(days=1)
+        elif time_period == "week":
+            cutoff = now - timedelta(days=7)
+        elif time_period == "month":
+            cutoff = now - timedelta(days=30)
+        else: # year
+            cutoff = now - timedelta(days=365)
+            
         unit = "hour"
         if time_period in ["week", "month"]:
             unit = "day"
@@ -84,7 +143,8 @@ class MongoRepository(EventRepositoryProtocol):
         pipeline = [
             {"$match": {
                 "repository": repository,
-                f"metrics.{metric_key}": {"$ne": None}
+                f"metrics.{metric_key}": {"$ne": None},
+                "timestamp": {"$gte": cutoff.isoformat()}
             }},
             {"$addFields": {"parsed_date": {"$toDate": "$timestamp"}}},
             {"$group": {
@@ -100,12 +160,37 @@ class MongoRepository(EventRepositoryProtocol):
         ]
         
         cursor = self.collection.aggregate(pipeline)
-        results = await cursor.to_list(length=None)
+        docs = await cursor.to_list(length=None)
         
-        data = []
-        for r in results:
-            dt = r["_id"]
-            if dt:
-                data.append({"x": int(dt.timestamp() * 1000), "y": r["value"]})
-                
-        return data
+        return [
+            {
+                "x": int(d["_id"].timestamp() * 1000),
+                "y": d["value"]
+            }
+            for d in docs
+            if d["_id"] is not None
+        ]
+
+    @override
+    async def get_unique_repositories(self) -> list[str]:
+        return await self.collection.distinct("repository")
+
+    @override
+    async def get_available_metrics(self, repository: str | None = None) -> list[str]:
+        # To get unique metric keys, we can use an aggregation pipeline.
+        # We need to project the object keys of `metrics` and unwind them.
+        match_stage = {"metrics": {"$type": "object"}}
+        if repository:
+            match_stage["repository"] = repository
+            
+        pipeline = [
+            {"$match": match_stage},
+            {"$project": {"keys": {"$objectToArray": "$metrics"}}},
+            {"$unwind": "$keys"},
+            {"$match": {"keys.v": {"$type": "number"}}}, # Only numeric metrics
+            {"$group": {"_id": "$keys.k"}}
+        ]
+        
+        cursor = self.collection.aggregate(pipeline)
+        docs = await cursor.to_list(length=None)
+        return [doc["_id"] for doc in docs]

@@ -33,7 +33,7 @@ class DynamoDBRepository(EventRepositoryProtocol):
 
     @override
     async def get_events_by_repository(
-        self, repository: str, skip: int = 0, limit: int = 25
+        self, repository: str, skip: int = 0, limit: int = 25, search: str | None = None
     ) -> list[ActionEvent]:
         # DynamoDB doesn't natively support skip/offset efficiently without a full scan
         # For simplicity in this dummy impl, we just limit the query.
@@ -51,12 +51,30 @@ class DynamoDBRepository(EventRepositoryProtocol):
             Limit=skip + limit,
         )
         items = response.get("Items", [])
+        
+        if search:
+            s = search.lower()
+            items = [item for item in items if s in item.get("workflow_name", "").lower() or s in item.get("commit_sha", "").lower()]
+
         if skip > 0:
             items = items[skip:]
         return [ActionEvent(**item) for item in items]
 
     @override
-    async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
+    async def get_all_events(
+        self,
+        skip: int = 0,
+        limit: int = 25,
+        search: str | None = None,
+        group_key: str | None = None,
+        group_val: str | None = None,
+    ) -> list[ActionEvent]:
+        # For filtering, we might need more items than requested if we filter client-side.
+        # But keeping it simple for the reference implementation:
+        fetch_limit = skip + limit
+        if search or (group_key and group_val):
+            fetch_limit = 5000  # Fetch more to allow for client-side filtering
+
         response = await self.table.query(
             IndexName="GSI2",
             KeyConditionExpression="GSI2PK = :pk",
@@ -65,16 +83,51 @@ class DynamoDBRepository(EventRepositoryProtocol):
             },
             ExpressionAttributeNames={"#ts": "timestamp"},
             ProjectionExpression=(
-                "id, repository, commit_sha, workflow_name, artifact_version, #ts, tags"
+                "id, repository, commit_sha, workflow_name, artifact_version, #ts, tags, custom_data"
             ),
             ScanIndexForward=False,
-            Limit=skip + limit,
+            Limit=fetch_limit,
         )
         items: list[dict[str, Any]] = response.get("Items", [])
+        
+        if search:
+            s = search.lower()
+            items = [item for item in items if s in item.get("workflow_name", "").lower() or s in item.get("commit_sha", "").lower() or s in item.get("repository", "").lower()]
+
+        if group_key and group_val:
+            filtered_items = []
+            for item in items:
+                matches = False
+                if item.get("tags", {}).get(group_key) == group_val:
+                    matches = True
+                elif item.get("custom_data", {}).get(group_key) == group_val:
+                    matches = True
+                elif item.get(group_key) == group_val:
+                    matches = True
+                if matches:
+                    filtered_items.append(item)
+            items = filtered_items
+
         if skip > 0:
             items = items[skip:]
+            
+        # Ensure we only return the limit requested
+        items = items[:limit]
 
         return [ActionEvent(**item) for item in items]
+
+    @override
+    async def get_event_by_id(self, event_id: str) -> ActionEvent | None:
+        # Scanning is not ideal for DynamoDB but works for this reference implementation
+        response = await self.table.scan(
+            FilterExpression="id = :id",
+            ExpressionAttributeValues={":id": event_id},
+            Limit=1
+        )
+        items = response.get("Items", [])
+        if not items:
+            return None
+        return ActionEvent(**items[0])
 
     @override
     async def ping(self) -> bool:
@@ -89,14 +142,26 @@ class DynamoDBRepository(EventRepositoryProtocol):
     async def get_aggregated_metrics(
         self, repository: str, metric_key: str, time_period: str, is_sum: bool
     ) -> list[dict[str, float | int]]:
-        from datetime import datetime, timezone
+        from datetime import datetime, timezone, timedelta
         import datetime as dt_lib
         
+        now = datetime.now(timezone.utc)
+        if time_period == "day":
+            cutoff = now - timedelta(days=1)
+        elif time_period == "week":
+            cutoff = now - timedelta(days=7)
+        elif time_period == "month":
+            cutoff = now - timedelta(days=30)
+        else: # year
+            cutoff = now - timedelta(days=365)
+            
+        cutoff_iso = cutoff.isoformat()
+        
         response = await self.table.query(
-            KeyConditionExpression="PK = :pk AND begins_with(SK, :sk)",
+            KeyConditionExpression="PK = :pk AND SK >= :sk_min",
             ExpressionAttributeValues={
                 ":pk": f"REPO#{repository}",
-                ":sk": "EVENT#",
+                ":sk_min": f"EVENT#{cutoff_iso}",
             },
             ExpressionAttributeNames={"#ts": "timestamp", "#metrics": "metrics"},
             ProjectionExpression="#ts, #metrics",
@@ -147,3 +212,39 @@ class DynamoDBRepository(EventRepositoryProtocol):
             
         data.sort(key=lambda i: i["x"])
         return data
+
+    @override
+    async def get_unique_repositories(self) -> list[str]:
+        response = await self.table.scan(
+            ProjectionExpression="repository",
+            Limit=5000
+        )
+        repos = {item.get("repository") for item in response.get("Items", []) if item.get("repository")}
+        return list(repos)
+
+    @override
+    async def get_available_metrics(self, repository: str | None = None) -> list[str]:
+        if repository:
+            response = await self.table.query(
+                KeyConditionExpression="PK = :pk AND begins_with(SK, :sk)",
+                ExpressionAttributeValues={
+                    ":pk": f"REPO#{repository}",
+                    ":sk": "EVENT#",
+                },
+                ProjectionExpression="metrics",
+                Limit=1000
+            )
+        else:
+            response = await self.table.scan(
+                ProjectionExpression="metrics",
+                Limit=1000
+            )
+            
+        metrics = set()
+        for item in response.get("Items", []):
+            m = item.get("metrics", {})
+            for k, v in m.items():
+                if isinstance(v, (int, float)):
+                    metrics.add(k)
+                    
+        return list(metrics)

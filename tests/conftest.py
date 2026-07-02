@@ -33,19 +33,46 @@ class MockEventRepository(EventRepositoryProtocol):
         return event
 
     @override
+    async def get_aggregated_metrics(
+        self, repository: str, metric_key: str, time_period: str, is_sum: bool
+    ) -> list[dict[str, float | int]]:
+        return []
+
+    @override
+    async def get_unique_repositories(self) -> list[str]:
+        repos = {e.repository for e in self.events if e.repository}
+        return list(repos)
+
+    @override
+    async def get_available_metrics(self, repository: str | None = None) -> list[str]:
+        metrics = set()
+        for e in self.events:
+            if repository and e.repository != repository:
+                continue
+            if e.metrics:
+                for k, v in e.metrics.items():
+                    if isinstance(v, (int, float)):
+                        metrics.add(k)
+        return list(metrics)
+
+    @override
     async def get_events_by_repository(
-        self, repository: str, skip: int = 0, limit: int = 25
+        self, repository: str, skip: int = 0, limit: int = 25, search: str | None = None
     ) -> list[ActionEvent]:
         self.get_events_call_count += 1
         events = [e for e in self.events if e.repository == repository]
+        if search:
+            events = [e for e in events if search.lower() in (e.workflow_name or "").lower() or search.lower() in (e.commit_sha or "").lower()]
         events.sort(key=lambda x: x.timestamp or "", reverse=True)
         if skip > 0:
             events = events[skip:]
         return events[:limit]
 
     @override
-    async def get_all_events(self, skip: int = 0, limit: int = 25) -> list[ActionEvent]:
+    async def get_all_events(self, skip: int = 0, limit: int = 25, search: str | None = None) -> list[ActionEvent]:
         events = list(self.events)
+        if search:
+            events = [e for e in events if search.lower() in (e.workflow_name or "").lower() or search.lower() in (e.commit_sha or "").lower() or search.lower() in (e.repository or "").lower()]
         events.sort(key=lambda x: x.timestamp or "", reverse=True)
         if skip > 0:
             events = events[skip:]
