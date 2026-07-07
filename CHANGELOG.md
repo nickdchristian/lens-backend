@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/nickdchristian/lens-backend/compare/v0.8.0...v0.9.0) (2026-07-07)
+
+
+### Features
+
+* oauth and OIDC ([#26](https://github.com/nickdchristian/lens-backend/issues/26)) ([ec69dc8](https://github.com/nickdchristian/lens-backend/commit/ec69dc82ff5de35200df32730d841d75542e3309))
+
 ## [0.8.0](https://github.com/nickdchristian/lens-backend/compare/v0.7.0...v0.8.0) (2026-07-02)
 
 
