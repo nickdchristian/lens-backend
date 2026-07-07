@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, status
 from fastapi_cache.decorator import cache
 
-from src.api.dependencies import verify_ingestion_auth
+from src.api.dependencies import verify_ingestion_auth, verify_user_session
 from src.core.config import settings
 from src.core.database import get_event_repository
 from src.core.limiter import limiter
@@ -42,14 +42,25 @@ async def create_event(
     payload: ActionDataPayload,
     repo: Annotated[EventRepositoryProtocol, Depends(get_event_repository)],
     background_tasks: BackgroundTasks,
+    authorized_repo: Annotated[str | None, Depends(verify_ingestion_auth)],
 ):
     """Ingest a new CI/CD action event asynchronously."""
+    if authorized_repo and authorized_repo != payload.repository:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Token is not authorized to ingest data for repository: {payload.repository}",
+        )
+
     event = ActionEvent(**payload.model_dump(exclude_unset=True))
     background_tasks.add_task(repo.create_event, event)
     return StatusResponse(status="success", message="Event accepted for processing")
 
 
-@router.get("", response_model=EventListResponse)
+@router.get(
+    "", response_model=EventListResponse, dependencies=[Depends(verify_user_session)]
+)
 @limiter.limit(get_api_limit)
 @cache(expire=300)
 async def get_all_events(
@@ -69,7 +80,11 @@ async def get_all_events(
     return EventListResponse(status="success", events=response_events)
 
 
-@router.get("/artifact/{event_id}", response_model=ActionResponse)
+@router.get(
+    "/artifact/{event_id}",
+    response_model=ActionResponse,
+    dependencies=[Depends(verify_user_session)],
+)
 @limiter.limit(get_api_limit)
 @cache(expire=300)
 async def get_event_by_id(
@@ -86,7 +101,11 @@ async def get_event_by_id(
     return ActionResponse.model_validate(event)
 
 
-@router.get("/repositories", response_model=list[str])
+@router.get(
+    "/repositories",
+    response_model=list[str],
+    dependencies=[Depends(verify_user_session)],
+)
 @limiter.limit(get_api_limit)
 @cache(expire=300)
 async def get_unique_repositories(
@@ -97,7 +116,9 @@ async def get_unique_repositories(
     return await repo.get_unique_repositories()
 
 
-@router.get("/metrics", response_model=list[str])
+@router.get(
+    "/metrics", response_model=list[str], dependencies=[Depends(verify_user_session)]
+)
 @limiter.limit(get_api_limit)
 @cache(expire=300)
 async def get_available_metrics(
@@ -109,7 +130,11 @@ async def get_available_metrics(
     return await repo.get_available_metrics(repository)
 
 
-@router.get("/{repository}", response_model=EventListResponse)
+@router.get(
+    "/{repository}",
+    response_model=EventListResponse,
+    dependencies=[Depends(verify_user_session)],
+)
 @limiter.limit(get_api_limit)
 @cache(expire=300)
 async def get_events_by_repo(
@@ -128,7 +153,9 @@ async def get_events_by_repo(
     return EventListResponse(status="success", events=response_events)
 
 
-@router.get("/{repository}/metrics/aggregated")
+@router.get(
+    "/{repository}/metrics/aggregated", dependencies=[Depends(verify_user_session)]
+)
 @limiter.limit(get_api_limit)
 @cache(expire=300)
 async def get_aggregated_metrics(
