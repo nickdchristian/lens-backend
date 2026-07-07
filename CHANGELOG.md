@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/nickdchristian/lens-backend/compare/v0.9.0...v0.9.1) (2026-07-07)
+
+
+### Documentation
+
+* readme update ([#28](https://github.com/nickdchristian/lens-backend/issues/28)) ([c8de1b0](https://github.com/nickdchristian/lens-backend/commit/c8de1b0c7875d15b4ef39ad918fd2b1ed15ba1b1))
+
 ## [0.9.0](https://github.com/nickdchristian/lens-backend/compare/v0.8.0...v0.9.0) (2026-07-07)
 
 
