@@ -68,9 +68,10 @@ class Settings(BaseSettings):
     oidc_audience: str | None = Field(
         default=None, description="Expected Audience for OIDC Federation"
     )
-    
+
     oidc_allowed_owners: Annotated[list[str], BeforeValidator(parse_cors)] = Field(
-        default_factory=list, description="Allowed GitHub owners/orgs for OIDC ingestion"
+        default_factory=list,
+        description="Allowed GitHub owners/orgs for OIDC ingestion",
     )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")  # pyright: ignore[reportUnannotatedClassAttribute]

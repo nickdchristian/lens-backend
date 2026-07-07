@@ -77,8 +77,8 @@ async def verify_ingestion_auth(
                     "value": settings.oidc_audience,
                 }
 
-            registry = jwt.JWTClaimsRegistry(**claims_options)
-            token_obj = jwt.decode(token, _jwks_cache)
+            registry = jwt.JWTClaimsRegistry(**claims_options)  # pyright: ignore[reportArgumentType]
+            token_obj = jwt.decode(token, jwks)
             claims = token_obj.claims
             registry.validate(claims)
 
