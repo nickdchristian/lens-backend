@@ -139,7 +139,6 @@ async def test_caching(client: TestClient, mock_repo: MockEventRepository):
     assert mock_repo.get_events_call_count == 1
 
 
-
 @pytest.mark.asyncio
 async def test_get_unique_repositories(
     client: TestClient, mock_repo: MockEventRepository
