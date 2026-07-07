@@ -4,12 +4,11 @@ import time
 from typing import Annotated, Any
 
 import httpx
-import joserfc
-from joserfc import jwt
-from joserfc.jwk import KeySet
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
-from itsdangerous import BadSignature, URLSafeTimedSerializer, SignatureExpired
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from joserfc import jwt
+from joserfc.jwk import KeySet
 
 from src.core.config import settings
 
@@ -73,22 +72,36 @@ async def verify_ingestion_auth(
                 "iss": {"essential": True, "value": settings.oidc_issuer_url}
             }
             if settings.oidc_audience:
-                claims_options["aud"] = {"essential": True, "value": settings.oidc_audience}
+                claims_options["aud"] = {
+                    "essential": True,
+                    "value": settings.oidc_audience,
+                }
 
             registry = jwt.JWTClaimsRegistry(**claims_options)
             token_obj = jwt.decode(token, _jwks_cache)
             claims = token_obj.claims
             registry.validate(claims)
-            
+
             repository = claims.get("repository") or claims.get("project_path")
             if not repository:
-                raise ValueError("Token is missing 'repository' or 'project_path' claim")
-                
-            repository_owner = claims.get("repository_owner") or claims.get("namespace_path")
+                raise ValueError(
+                    "Token is missing 'repository' or 'project_path' claim"
+                )
+
+            repository_owner = claims.get("repository_owner") or claims.get(
+                "namespace_path"
+            )
             if not settings.oidc_allowed_owners:
-                raise ValueError("OIDC multi-tenant ingestion is disabled (no allowed owners configured)")
-            if not repository_owner or repository_owner not in settings.oidc_allowed_owners:
-                raise ValueError(f"Repository owner '{repository_owner}' is not whitelisted")
+                raise ValueError(
+                    "OIDC multi-tenant ingestion is disabled (no allowed owners configured)"
+                )
+            if (
+                not repository_owner
+                or repository_owner not in settings.oidc_allowed_owners
+            ):
+                raise ValueError(
+                    f"Repository owner '{repository_owner}' is not whitelisted"
+                )
 
             return repository
         except Exception as e:

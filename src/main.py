@@ -13,8 +13,8 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from starlette.responses import Response
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import Response
 
 from src.api.v1.auth import router as auth_router
 from src.api.v1.events import router as events_router
@@ -108,9 +108,7 @@ if settings.cors_origins:
     )
 
 app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.session_secret_key,
-    max_age=3600
+    SessionMiddleware, secret_key=settings.session_secret_key, max_age=3600
 )
 
 app.include_router(auth_router)

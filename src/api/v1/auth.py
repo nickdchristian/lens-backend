@@ -1,13 +1,14 @@
 # pyright: reportUnknownMemberType=false, reportAny=false
+import logging
+
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
-from itsdangerous import BadSignature, URLSafeTimedSerializer, SignatureExpired
-import logging
-
-logger = logging.getLogger(__name__)
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from src.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -36,9 +37,13 @@ async def login(request: Request):
         raise HTTPException(status_code=501, detail="OAuth is not configured")
 
     base_url = str(request.base_url)
-    if "localhost" not in base_url and "127.0.0.1" not in base_url and base_url.startswith("http://"):
+    if (
+        "localhost" not in base_url
+        and "127.0.0.1" not in base_url
+        and base_url.startswith("http://")
+    ):
         base_url = base_url.replace("http://", "https://", 1)
-        
+
     redirect_uri = base_url + "api/v1/auth/callback"
     return await oauth.sso.authorize_redirect(request, redirect_uri)
 
@@ -102,12 +107,11 @@ async def logout(request: Request):
     response = Response(
         status_code=200, content='{"status": "ok"}', media_type="application/json"
     )
-    is_localhost = "localhost" in str(request.base_url) or "127.0.0.1" in str(request.base_url)
+    is_localhost = "localhost" in str(request.base_url) or "127.0.0.1" in str(
+        request.base_url
+    )
     response.delete_cookie(
-        key="lens_session", 
-        httponly=True, 
-        secure=not is_localhost,
-        samesite="lax"
+        key="lens_session", httponly=True, secure=not is_localhost, samesite="lax"
     )
     return response
 
