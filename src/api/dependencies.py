@@ -5,7 +5,7 @@ from typing import Annotated, Any
 
 import httpx
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from joserfc import jwt
 from joserfc.jwk import KeySet
@@ -14,7 +14,6 @@ from src.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 bearer_token = HTTPBearer(auto_error=False)
 
 _jwks_cache = None
@@ -54,12 +53,11 @@ async def get_jwks() -> Any:
 
 
 async def verify_ingestion_auth(
-    api_key: Annotated[str | None, Depends(api_key_header)],
     bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_token)],
 ) -> str | None:
     """
     Verify that the incoming request is authorized to ingest data.
-    Returns the authorized repository name (if OIDC), or None if using a global API Key.
+    Returns the authorized repository name (if OIDC).
     """
     if bearer and bearer.credentials and settings.oidc_issuer_url:
         token = bearer.credentials
@@ -112,25 +110,11 @@ async def verify_ingestion_auth(
                 headers={"WWW-Authenticate": "Bearer"},
             ) from None
 
-    provided_token = api_key or (bearer.credentials if bearer else None)
-
-    if not provided_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if not settings.api_key or not secrets.compare_digest(
-        provided_token, settings.api_key
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return None
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Missing or invalid OIDC token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 def get_serializer() -> Any:
