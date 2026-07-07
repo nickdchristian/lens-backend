@@ -51,3 +51,13 @@ pythonpath = ["."]
 env = [
     "DATABASE_TYPE=mock",
 ]
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+reportAny = false
+reportExplicitAny = false
+reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnusedCallResult = false
