@@ -80,11 +80,11 @@ async def verify_ingestion_auth(
             claims = token_obj.claims
             registry.validate(claims)
             
-            repository = claims.get("repository")
+            repository = claims.get("repository") or claims.get("project_path")
             if not repository:
-                raise ValueError("Token is missing 'repository' claim")
+                raise ValueError("Token is missing 'repository' or 'project_path' claim")
                 
-            repository_owner = claims.get("repository_owner")
+            repository_owner = claims.get("repository_owner") or claims.get("namespace_path")
             if not settings.oidc_allowed_owners:
                 raise ValueError("OIDC multi-tenant ingestion is disabled (no allowed owners configured)")
             if not repository_owner or repository_owner not in settings.oidc_allowed_owners:
