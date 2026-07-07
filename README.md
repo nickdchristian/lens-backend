@@ -20,7 +20,7 @@ Lens is designed to be highly secure and platform-agnostic, supporting standard 
 
 When your CI/CD pipelines (e.g., GitHub Actions, GitLab CI) send metrics to the `/api/v1/events` endpoint, they authenticate using **short-lived OIDC JWTs**. 
 
-The backend dynamically fetches the provider's JSON Web Key Set (JWKS) to cryptographically verify the signature of the token. It then validates the claims against an explicitly allowed list of owners (`OIDC_ALLOWED_OWNERS`). This completely eliminates the need for managing static API keys!
+The backend dynamically fetches the provider's JSON Web Key Set (JWKS) to cryptographically verify the signature of the token. It then validates the claims against an explicitly allowed list of owners (`OIDC_ALLOWED_OWNERS`).
 
 ### 2. Dashboard Access (OAuth2)
 
@@ -79,11 +79,4 @@ The backend uses `uv` for lightning-fast dependency management.
 
 *(Note: For local development, ensure you have a running MongoDB and Redis instance, or set `DATABASE_TYPE=mock` to use an in-memory mock repository).*
 
-## Deployment
 
-A `Dockerfile` is provided for containerized deployments. The production image is built automatically and pushed to GHCR (GitHub Container Registry) when a new release tag is pushed.
-
-```bash
-docker build -t lens-backend:latest .
-docker run -p 8000:8000 --env-file .env lens-backend:latest
-```
