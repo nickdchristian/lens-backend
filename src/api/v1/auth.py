@@ -72,6 +72,10 @@ async def auth_callback(request: Request, response: Response):
         or "unknown"
     )
 
+    if settings.oauth_allowed_users and user_id not in settings.oauth_allowed_users:
+        logger.warning(f"Unauthorized login attempt by user: {user_id}")
+        return RedirectResponse(url="/?error=unauthorized")
+
     serializer = get_serializer()
     session_data = {"user": user_id, "name": user_info.get("name", user_id)}
     signed_session = serializer.dumps(session_data)

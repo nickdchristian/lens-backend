@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     oauth_userinfo_url: str | None = Field(
         default=None, description="OAuth2 UserInfo URL"
     )
+    oauth_allowed_users: Annotated[list[str], BeforeValidator(parse_cors)] = Field(
+        default_factory=list, description="Allowed GitHub users for dashboard access"
+    )
 
     session_secret_key: str = Field(
         default_factory=lambda: secrets.token_urlsafe(32),
